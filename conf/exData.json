@@ -1,0 +1,34 @@
+exDataSrc = {
+                "Australian Capital Territory":{
+                'dataURL':' https://esa.act.gov.au/feeds/currentincidents.xml',
+                'format':'xml',
+                shortName: 'ACT'},
+              "New South Wales":{
+             'dataURL':'http://www.rfs.nsw.gov.au/feeds/majorIncidents.json',
+             'format':'json',
+              shortName: 'NSW'},
+             //"Northern Territory":{
+             //'dataURL':'https://pfes.nt.gov.au/news.rss',
+             //'format':'xml',
+            //  shortName: 'NT'},
+            "South Australia":{
+             'dataURL':'https://data.eso.sa.gov.au/prod/cfs/criimson/cfs_current_incidents.json',
+             'format':'json',
+            shortName: 'SA'},
+             "Tasmania":{
+             'dataURL':'http://www.fire.tas.gov.au/Show?pageId=colBushfireSummariesRss',
+             'format':'xml'
+             ,shortName: 'TAS'},
+              "Victoria":{
+             'dataURL':'https://data.emergency.vic.gov.au/Show?pageId=getIncidentXML',
+             'format':'xml',
+              shortName: 'VIC'},
+              "Queensland":{
+             'dataURL':'https://www.qfes.qld.gov.au/data/alerts/bushfireAlert.xml',
+             'format':'xml',
+              shortName: 'QLD'},
+              "Western Australia":{
+             'dataURL':'https://www.emergency.wa.gov.au/data/incident_FCAD.rss',
+             'format':'xml',
+              shortName: 'WA'},
+}

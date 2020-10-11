@@ -1,0 +1,86 @@
+    
+
+Config = {
+	"authkey": "c792039948cfc2443cf7d39a6c09c93bc8fda73e:c5cc7da14f3685f5632d484d36838c91ec6316a0",
+	"endpoint": "https://lrs.simbotix.com.au/data/xAPI/",
+	"mapBoxToken": 'pk.eyJ1IjoianVsaWFuZGF2aXMiLCJhIjoiY2tjY3FmdXZiMDU3aTJ4cDNlMjNzb2lvMCJ9.fkDZRReOQ0WXzgNIsRKCHg',
+    "objectID" : "https://digitallearningsolutions.com.au/xapi-esxapi-app",
+    "rootURL" : "https://digitallearningsolutions.com.au/ESxAPI",
+    "dashboard":"https://lrs.simbotix.com.au/dashboards/5edd70627644b4059d87244f/5f643af47644b4059d8724dd/EsXAPI"
+
+}
+
+exDataSrc = {
+         "Alaska":{
+             'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_Alaska_24h.kml',
+             'format':'kml'},
+         "Australia and New Zealand":{
+             'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_Australia_NewZealand_24h.kml',
+             'format':'kml'},
+                "Canada":{
+                    'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_Canada_24h.kml',
+                     'format':'kml'},
+             "USA (Conterminous) and Hawaii":{
+         'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_USA_contiguous_and_Hawaii_24h.kml',
+             'format':'kml'},
+            "Central America":{
+             'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_Central_America_24h.kml',
+             'format':'kml'},
+             "South America":{
+             'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_South_America_24h.kml',
+             'format':'kml'},
+              "Europe":{
+             'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_Europe_24h.kml',
+             'format':'kml'},
+              "North and Central Africa":{
+            'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_Northern_and_Central_Africa_24h.kml',
+             'format':'kml'},
+              "Southern Africa":{
+             'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_Southern_Africa_24h.kml',
+             'format':'kml'},
+              "Russia and Asia":{
+             'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_Russia_Asia_24h.kml',
+             'format':'kml'},
+              "South Asia":{
+             'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_South_Asia_24h.kml',
+             'format':'kml'},
+              "South East Asia":{
+             'dataURL':'https://firms.modaps.eosdis.nasa.gov/data/active_fire/c6/kml/MODIS_C6_SouthEast_Asia_24h.kml',
+             'format':'kml'},
+}
+
+
+testData = {
+                "Canberra":{
+                'lat':'',
+                     'long':''},
+    "Sydney":{
+                'lat':'',
+                     'long':''},
+    "Melbourne":{
+                'lat':'',
+                     'long':''},
+    "Adelaide":{
+                'lat':'',
+                     'long':''},
+    "Hobart":{
+                'lat':'',
+                     'long':''},
+    "Perth":{
+                'lat':'',
+                     'long':''},
+          "Darwin":{
+                'lat':'',
+                     'long':''},    
+"Brisbane":{
+                'lat':'',
+                     'long':''},
+}
+
+
+
+
+
+
+
+

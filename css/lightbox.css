@@ -1,0 +1,83 @@
+/* ===========================
+   ===== Lightbox  =====
+   =========================== */
+
+
+.centering{
+	max-width:1300px;
+	margin:50px auto;
+	text-align: left
+}
+
+.lightbox_overlay{
+	position: absolute;
+	top: 0;
+	left:0;
+	background: black;
+	opacity: 0.7;
+	z-index:999;
+	cursor: pointer;
+}
+
+.lightbox{
+	position: absolute;
+	background: white;
+	z-index: 1000;
+
+}
+
+.spinner{
+	position: absolute;
+	top:calc(50% - 25px);
+	left:calc(50% - 25px);
+	font-size: 50px;
+	-webkit-animation: spin 2s linear infinite;
+    animation: spin 2s linear infinite;
+
+}
+
+@-webkit-keyframes spin {
+	from {-webkit-transform: rotate(0deg);}
+    to {-webkit-transform: rotate(360deg);}
+}
+
+@keyframes spin {
+	from {transform: rotate(0deg);}
+    to {transform: rotate(360deg);}
+}
+
+
+.close{
+	position: absolute;
+	color:#fff;
+	font-size:30px;
+	cursor: pointer;
+	z-index:1001;
+}
+
+.next_img{
+	position: absolute;
+	color:#fff;
+	font-size:50px;
+	right:10px;
+	cursor: pointer;
+	z-index:1001;
+	opacity:0.9;
+}
+.next_img:hover{
+	opacity:1
+}
+
+.prev_img{
+	position: absolute;
+	color:#fff;
+	font-size:50px;
+	left:10px;
+	cursor: pointer;
+	z-index:1001;
+	opacity:0.9;
+}
+
+.prev_img:hover{
+	opacity:1;
+}
