@@ -1,10 +1,10 @@
 Config = {
 	"authkey": "c792039948cfc2443cf7d39a6c09c93bc8fda73e:c5cc7da14f3685f5632d484d36838c91ec6316a0",
 	"endpoint": "https://lrs.simbotix.com.au/data/xAPI/",
-	"mapBoxToken": "pk.eyJ1IjoianVsaWFuZGF2aXMiLCJhIjoiY2tjY3FmdXZiMDU3aTJ4cDNlMjNzb2lvMCJ9.fkDZRReOQ0WXzgNIsRKCHg",
+	"mapBoxToken": "",
     "objectID" : "https://xapi.com.au/xapi-esxapi-app",
     "rootURL" : "https://digitallearningsolutions.com.au/ESxAPI",
     "dashboard":"https://digitallearningsolutions.com.au/ESxAPI/dashboard.html",
     "radius":"50",
-    "googleMapsAPI":"AIzaSyCfuQm0olWCGhBSgShTtHzJHbHde9Es-KE",
+    "googleMapsAPI":"",
 }
