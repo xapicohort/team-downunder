@@ -437,6 +437,7 @@ function checkIn(){
                                 }
                             }},
                        "context":{
+                            "registration": contextReg,
                             "contextActivities":{
                                 "category":{
                                     "id":"https://w3id.org/xapi/application"
