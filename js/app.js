@@ -38,7 +38,8 @@ var CirclesArray = [];
  
 
 $(document).ready(function(){
- 
+
+    
 setButtons(); 
     
     
@@ -90,7 +91,8 @@ locationPromise
          closeAllInfoWindows();
   });
     
-    
+  $("#loader").fadeOut("slow");    
+  
     
 });
     
@@ -179,7 +181,7 @@ $('#btnStart').on('click',function(e){
                               "definition": {
                                 "type": "http://activitystrea.ms/schema/1.0/application",
                                 "name": {
-                                  "en-US": "ESxAPI app at location " + geolocation.lat +","+ geolocation.long
+                                  "en-US": " the ESxAPI app at " + reverseLookUp(geolocation.lat, geolocation.long) +"(" + geolocation.lat +","+ geolocation.long +")",
                                 }
                             }},
                        "context":{
@@ -247,15 +249,16 @@ $('#btnToggleCircle').on('click',function(){
 $('#btnCheckIn').on('click',function(e){
      e.stopPropagation();
      e.preventDefault();
-   
+   $("#loader").show();   
     checkIn();
-   
+   $("#loader").fadeOut("slow");   
     
 })
 
   
 //Update the map based on the test location
 $('.incidentData').on('click',function(e){
+    $("#loader").show();   
     incidents = [];
     
     //get the incidents from the server
@@ -282,7 +285,7 @@ $('.incidentData').on('click',function(e){
                               "definition": {
                                 "type": "http://activitystrea.ms/schema/1.0/place",
                                 "name": {
-                                  "en-US": "Was within " +Config.radius+"kms ( actual" + Math.round(distance) + "kms of an incident at " + value.lat +","+ value.long +"."
+                                  "en-US": reverseLookUp(geolocation.lat, geolocation.long) +" and was within " +Config.radius+"kms ( actual " + Math.round(distance) + " kms) of an incident at " + reverseLookUp(value.lat,value.long) +"("+ value.long +","+value.long+")"
                         }
                             }},
                        "context":{
@@ -353,7 +356,7 @@ $('.incidentData').on('click',function(e){
         
      });
     
-                        
+    $("#loader").fadeOut("slow");                       
 })
 
 //Save the settings back to the server  
@@ -370,8 +373,9 @@ $('#btnsaveSettings').on('click',function(){
 $('#btnShowOthers').on('click',function(e){
     e.stopPropagation();
     e.preventDefault();
+    $("#loader").show();   
     getAllUsers();
-    
+    $("#loader").fadeOut("slow");   
 })
 
     
@@ -401,19 +405,136 @@ $('#btnSimulateCheckIn').on('click',function(){
      alert('You must be Logged in (we need to know who you are) before you can use the simulator.\n\n Refresh your browser select Start Here and Check In');
      return;
  }    
-    
+ $("#loader").show();      
 simulateCheckin();    
-    
+ $("#loader").fadeOut("slow");      
     
 })    
     
-  
+ 
+$(document).on('click','#btnSimCheckin',function(){
+    
+    //Loop through markers, if one is withing the radiuse, checkin!
+    
+    var Newlat = $(this).attr('data-lat');
+    var Newlong = $(this).attr('data-long');
+    
+     $.each(incidents,function(key, value){$(this).hide();  
+        
+        var distance = Math.round(Getdistance(Newlat,Newlong,value.lat,value.long,'K'));
+        //want to make sure the user has checkedin before sending this data. We need to know who it is, so a user MUST checkin
+
+        //Add 10 for simulated buffer in icon    
+        if(parseInt(distance) <= parseInt(Config.radius)){ 
+        
+        console.log('We are in range');  
+        console.log('Distance:'+ distance);
+        console.log('Radius:'+ Config.radius);
+            
+            
+          
+            
+            
+        var descObject = reverseLookUp(Newlat,Newlong) +" and was within " +Config.radius+"kms ( actual " + Math.round(distance) + " kms) of an incident at " + reverseLookUp(value.lat,value.long) +"("+ value.lat +","+value.long+")";    
+          
+        setTimeout(function(){console.log('dummy wait')},500);    
+            
+        var NewPosDesc = reverseLookUp(Newlat,Newlong) +",distanceToIncident"+ Math.round(Getdistance(Newlat,Newlong,value.lat, value.long,"K"))+"kms";    
+            
+        setTimeout(function(){console.log('dummy wait 2')},500);    
+              
+        var stmt = {"actor" : {"objectType":"Agent", "mbox" : "mailto:"+email,"name": name },
+            "verb" : {"id" : "http://activitystrea.ms/schema/1.0/at",
+                      "display" : {"en-US" : "was at"}},
+            "object" : { "id": Config.objectID,
+                          "objectType": "Activity",
+                              "definition": {
+                                "type": "http://activitystrea.ms/schema/1.0/place",
+                                "name": {
+                                    "en-US": descObject
+                                }
+                            }},
+                       "context":{
+                        "registration": contextReg,
+                        "contextActivities":{
+                                "category":{
+                                    "id":"https://w3id.org/xapi/application"
+                                }
+                            },
+                           "extensions": {
+                                "http://id.tincanapi.com/extension/latitude": Newlat,
+                                "http://id.tincanapi.com/extension/longitude": Newlong,
+                                "http://id.tincanapi.com/extension/measurement": distance,
+                                "http://id.tincanapi.com/extension/geojson":
+                               {
+                                  "type": "FeatureCollection",
+                                  "features": [
+                                    {
+                                      "type": "Feature",
+                                      "geometry": {
+                                        "type": "Point",
+                                        "coordinates": [ Newlat,Newlong ]
+                                      },
+                                      "properties": {
+                                        "name":  NewPosDesc,
+                                      }
+                                    },
+                                    {
+                                      "type": "Feature",
+                                      "geometry": {
+                                        "type": "Point",
+                                        "coordinates": [ value.lat, value.long]
+                                      },
+                                        "properties": {
+                                        "name": value.title,
+                                        "description": value.longdesc,
+                                        "distanceFromUser": Math.round(Getdistance(Newlat,Newlong,value.lat, value.long,"K"))+"kms",
+                                      }
+                                 },
+                                  ]
+                                },    
+                               "http://id.tincanapi.com/extension/browser-info": {
+                                  "name": {
+                                    "en-US": "browser information"
+                                  },
+                                  "description": {
+                                    "code_name": navigator.appCodeName,
+                                    "name": GetBrowser(),
+                                    "version": navigator.appVersion,
+                                    "platform": navigator.platform,
+                                    "user-agent-header": navigator.userAgent,
+                                    "cookies-enabled": navigator.cookieEnabled
+                                  }
+                                }
+                                
+                        },
+                        }};
+    
+    
+   
+   
+   //Send the Statement to the LRS
+   console.log(stmt);            
+   var resp_obj = ADL.XAPIWrapper.sendStatement(stmt);
+    
+                
+        $(this).hide();  
+        }
+          
+        
+    })
+    
+    $(this).hide();  
+    
+})    
+    
 })
 
 
 //Execute a checkin
 function checkIn(){
-    
+    $("#loader").show();      
+
      //Get current location
     getLocation();
     
@@ -423,7 +544,9 @@ function checkIn(){
     }
     
     //get location
-    
+    //clear all
+    deleteOverlays();
+    Circle.setMap(null);
     
     var stmt = {"actor" : {"objectType":"Agent", "mbox" : "mailto:"+email,"name": name },
             "verb" : {"id" : "http://activitystrea.ms/schema/1.0/checkin",
@@ -433,7 +556,7 @@ function checkIn(){
                               "definition": {
                                 "type": "http://activitystrea.ms/schema/1.0/place",
                                 "name": {
-                                  "en-US": "Was at location " + geolocation.lat +","+ geolocation.long
+                                  "en-US": "Was at  " + reverseLookUp(geolocation.lat, geolocation.long) +"(" + geolocation.lat +","+ geolocation.long +")",
                                 }
                             }},
                        "context":{
@@ -483,10 +606,45 @@ function checkIn(){
    
    var datetime = "Checked in at: " + new Date().today() + " @ " + new Date().timeNow();
    var resp_obj = ADL.XAPIWrapper.sendStatement(stmt);
-   L.marker([geolocation.lat, geolocation.long]).addTo(mymap)
-		.bindPopup("<b>"+name+"</b><br />"+ datetime).openPopup()
-    markersArray.push(marker);
-
+   
+    
+    message = "<b>"+name+"</b><br />"+ datetime;
+            
+             myLatLng = { lat: parseFloat(geolocation.lat), lng: parseFloat(geolocation.long) };
+             const infowindow = new google.maps.InfoWindow({
+                content: message
+              });
+         
+           InfoWindowArray.push(infowindow);
+          
+             var marker = new google.maps.Marker({position: myLatLng, map: map,  icon: scaleImg(iconBase + 'mapbox-icon_you.png'), title: message});
+              markersArray.push(marker);
+       
+             marker.addListener("click", () => {
+           infowindow.open(map, marker);
+                 
+          });
+            
+    
+    map.setOptions({ minZoom: 5, maxZoom: 15 });    
+   Circle = new google.maps.Circle({
+      strokeColor: '#FF0000',
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: '#FF0000',
+      fillOpacity: 0,
+      map: map,
+     clickable: false,    
+      center: myLatLng,
+      radius: Config.radius * 1000 //in meters
+    });
+    
+    CirclesArray.push(Circle);
+    
+//Zoom to location
+map.setZoom(8);      // This will trigger a zoom_changed on the map
+map.setCenter(new google.maps.LatLng(geolocation.lat, geolocation.long));
+    
 }; 
 
     
@@ -555,8 +713,41 @@ function getAllUsers(){
     
     $.each( Users, function( key, value ) {
            
-           	
-           var message = value['name']
+        
+        
+          try {
+            //thedate = new Date(theDate);	
+           var message = Title + '<br/>' + ' on '+ theDate +'</br>' ;
+           
+           //Check if there are any images as attachments
+           if(attachments){
+                   message += "<br><button class='showPhotos btn btn-sm btn-primary' data-lat='"+value['lat']+"' data-long='"+value['long']+"'><i class='fa fa-camera'></i> View Photos</button>";
+           
+           } 
+         
+              myLatLng = { lat: parseInt(lat), lng: parseInt(long) };
+            const infowindow = new google.maps.InfoWindow({
+                content: message
+              });
+         
+           InfoWindowArray.push(infowindow);
+          
+             var marker = new google.maps.Marker({position: myLatLng, map: map,  icon: scaleImg(iconBase + 'mapbox-icon_incident.png'), title: message});
+              markersArray.push(marker);
+       
+             marker.addListener("click", () => {
+           infowindow.open(map, marker);
+                 
+          });
+         
+        
+            
+     }catch(err){
+         console.log(err.message);
+     }
+        
+        
+           	var message ='';
            
            //Check if there are any images as attachments
            if(value.attachments){
@@ -567,17 +758,21 @@ function getAllUsers(){
         var myLatLng ='';
         if(value['lat']){
             
-                
+            message = value['name'];
+            
              myLatLng = { lat: parseFloat(value['lat']), lng: parseFloat(value['long']) };
-             infowindow = new google.maps.InfoWindow({
+             const infowindow = new google.maps.InfoWindow({
                 content: message
               });
-            
-            InfoWindowArray.push(infowindow);
+         
+           InfoWindowArray.push(infowindow);
+          
              var marker = new google.maps.Marker({position: myLatLng, map: map,  icon: scaleImg(iconBase + 'mapbox-icon_other.png'), title: message});
+              markersArray.push(marker);
+       
              marker.addListener("click", () => {
-            infowindow.open(map, marker);
-                 markersArray.push(marker);
+           infowindow.open(map, marker);
+                 
           });
             
             
@@ -627,7 +822,7 @@ function plotPointGoogleMaps(theDate, Title, lat, long, attachments,map){
                Title += "<br><button class='btn btn-sm btn-primary' data-lat='"+lat+"' data-long='"+long+"'><i class='fa fa-camera'></i> View Photos</button>";
                
            } 
-         
+            if(parseInt(lat) && parseInt(long)){
               myLatLng = { lat: parseInt(lat), lng: parseInt(long) };
             const infowindow = new google.maps.InfoWindow({
                 content: message
@@ -643,7 +838,7 @@ function plotPointGoogleMaps(theDate, Title, lat, long, attachments,map){
                  
           });
          
-        
+            }
             
      }catch(err){
          console.log(err.message);
@@ -744,7 +939,6 @@ function getConfig(){
 }
 
 
-/***** Helper Functions *****/
 
 
 function setButtons(){
@@ -794,20 +988,71 @@ Circle.setMap(Circle.getMap() ? null : map);
  
 //Simulate the user checkin
 function simulateCheckin(){
+    
+    
+ //get a random state from exData and plot
+const values = Object.values(exDataSrc)
+const randomData = values[parseInt(Math.random() * values.length)]    
+   
+ incidents = getIncidentData(randomData);
+//check if there are any incidents and if not, try again
+  
+if(incidents.length <= 0){ 
+    console.log('No incidents found, trying again');
+    simulateCheckin();
+}   
 
+//Capture that the user ran a simulation
+    
+     var stmt = {"actor" : {"objectType":"Agent", "mbox" : "mailto:"+email,"name": name },
+            "verb" : {"id" : "http://activitystrea.ms/schema/1.0/start",
+                      "display" : {"en-US" : "started"}},
+            "object" : { "id": Config.objectID,
+                          "objectType": "Activity",
+                              "definition": {
+                                "type": "http://adlnet.gov/exapi/activties/simulation",
+                                "name": {
+                                    "en-US": "ESxAPI Simulation"
+                                }
+                            }},
+                       "context":{
+                        "registration": contextReg,
+                        "contextActivities":{
+                                "category":{
+                                    "id":"https://w3id.org/xapi/application"
+                                }
+                            },
+                           "extensions": {
+                               "http://id.tincanapi.com/extension/browser-info": {
+                                  "name": {
+                                    "en-US": "browser information"
+                                  },
+                                  "description": {
+                                    "code_name": navigator.appCodeName,
+                                    "name": GetBrowser(),
+                                    "version": navigator.appVersion,
+                                    "platform": navigator.platform,
+                                    "user-agent-header": navigator.userAgent,
+                                    "cookies-enabled": navigator.cookieEnabled
+                                  }
+                                }
+                                
+                        },
+                        }};
+    
+   var resp_obj = ADL.XAPIWrapper.sendStatement(stmt);
+    
     
 //remove the current location and circle    
 //first marker is ALWAYS the checkin user
-deleteOverlays();    
+  markersArray = []; 
+  deleteOverlays();   
 
 //Clear circles    
 Circle.setMap(null);
-//get a random state from exData and plot
-const values = Object.values(exDataSrc)
-const randomData = values[parseInt(Math.random() * values.length)]    
+CirclesArray = [];    
 
-incidents = getIncidentData(randomData);
-//check if there are any incidents and if not, try again
+    
     
 $.each(incidents,function(key, value){
 
@@ -815,7 +1060,7 @@ $.each(incidents,function(key, value){
 })
 
 //select a random marker from marker[]    
-    
+ 
 var newMarker = markersArray[Math.floor(markersArray.length * Math.random())];    
 //calculate a new location < config.radius    
 var MarkerPosition = newMarker.getPosition();    
@@ -829,10 +1074,10 @@ var newLocation = [];
     markersArray.push(marker);
     
      infowindow = new google.maps.InfoWindow({
-                content: "<b>You are here</b><br />"
+                content: "<div style='text-align:center'><div style='font-size:14pt;font-weight:bold'>You are now at <br/>"+reverseLookUp(NewPosition["latitude"],NewPosition["longitude"])+"</div><br/><button id='btnSimCheckin' class='btn btn-sml btn-info' data-lat='"+NewPosition["latitude"]+"' data-long='"+NewPosition["longitude"]+"'><i class='fa fa-crosshairs'></i> 'Checkin' here</button></div>",
               });
         InfoWindowArray.push(infowindow);
-            
+            infowindow.open(map, marker);
     
     marker.addListener("click", () => {
             infowindow.open(map, marker);
@@ -860,98 +1105,13 @@ var newLocation = [];
 map.setZoom(8);      // This will trigger a zoom_changed on the map
 map.setCenter(new google.maps.LatLng(NewPosition["latitude"], NewPosition["longitude"]));
 
-    
-//Now will send to xAPI
-    
-    $.each(incidents,function(key, value){
+   return;
+            
         
-        var distance = Getdistance(NewPosition["latitude"],NewPosition["longitude"],value.lat,value.long,'K');
-        //want to make sure the user has checkedin before sending this data. We need to know who it is, so a user MUST checkin
-            
-        if(parseFloat(distance) <= Config.radius && hasCheckedIn){ 
-            
-            
-              
-        var stmt = {"actor" : {"objectType":"Agent", "mbox" : "mailto:"+email,"name": name },
-            "verb" : {"id" : "http://activitystrea.ms/schema/1.0/at",
-                      "display" : {"en-US" : "was at"}},
-            "object" : { "id": Config.objectID,
-                          "objectType": "Activity",
-                              "definition": {
-                                "type": "http://activitystrea.ms/schema/1.0/place",
-                                "name": {
-                                  "en-US": "Was within " +Config.radius+"kms ( actual" + Math.round(distance) + "kms of an incident at " + value.lat +","+ value.long +"."
-                        }
-                            }},
-                       "context":{
-                        "registration": contextReg,
-                        "contextActivities":{
-                                "category":{
-                                    "id":"https://w3id.org/xapi/application"
-                                }
-                            },
-                           "extensions": {
-                                "http://id.tincanapi.com/extension/latitude": NewPosition["latitude"],
-                                "http://id.tincanapi.com/extension/longitude": NewPosition["longitude"],
-                                "http://id.tincanapi.com/extension/measurement": distance,
-                                "http://id.tincanapi.com/extension/geojson":
-                               {
-                                  "type": "FeatureCollection",
-                                  "features": [
-                                    {
-                                      "type": "Feature",
-                                      "geometry": {
-                                        "type": "Point",
-                                        "coordinates": [ NewPosition["latitude"], NewPosition["longitude"] ]
-                                      },
-                                      "properties": {
-                                        "name": reverseLookUp(NewPosition["latitude"], NewPosition["longitude"]),
-                                        "distanceToIncident": Math.round(Getdistance(NewPosition["latitude"], NewPosition["longitude"],value.lat, value.long,"K"))+"kms",  
-                                      }
-                                    },
-                                    {
-                                      "type": "Feature",
-                                      "geometry": {
-                                        "type": "Point",
-                                        "coordinates": [ value.lat, value.long]
-                                      },
-                                        "properties": {
-                                        "name": value.title,
-                                        "description": value.longdesc,
-                                        "distanceFromUser": Math.round(Getdistance(NewPosition["latitude"], NewPosition["longitude"],value.lat, value.long,"K"))+"kms",
-                                      }
-                                 },
-                                  ]
-                                },    
-                               "http://id.tincanapi.com/extension/browser-info": {
-                                  "name": {
-                                    "en-US": "browser information"
-                                  },
-                                  "description": {
-                                    "code_name": navigator.appCodeName,
-                                    "name": GetBrowser(),
-                                    "version": navigator.appVersion,
-                                    "platform": navigator.platform,
-                                    "user-agent-header": navigator.userAgent,
-                                    "cookies-enabled": navigator.cookieEnabled
-                                  }
-                                }
-                                
-                        },
-                        }};
-    
-    
-   
-   
-   //Send the Statement to the LRS
-   console.log(stmt);            
-   var resp_obj = ADL.XAPIWrapper.sendStatement(stmt);
-        }
-         
-        
-    })
-    
-}
+    }
+     
+  
+
 
 
 //returns a lat an long that can be plotted next to a random marker
@@ -1043,34 +1203,32 @@ function reverseLookUp(lat,long){
 
     
            
-var addressDetails ='';
+var addressDetails ='Unkown location';
 
 var url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='+lat+','+long+'&key='+Config.googleMapsAPI;   
     
     
-
             $.ajax({
              async: false,
              type: 'GET',
              url: url,
              success: function(results){
                  try{
-                     
                      addressDetails = results.results[0].address_components[2].long_name + ', ' + results.results[0].address_components[3].long_name + ', ' + results.results[0].address_components[4].long_name + ', ' + results.results[0].address_components[5].long_name + ', ' + results.results[0].address_components[6].long_name;
-  
                      
                  }catch(e){
                      //fallback
-                     addressDetails =  "Geocoder failed due to: " + e.message;
-                     
+                        addressDetails = results.results[0].address_components[0].long_name + ', ' + results.results[0].address_components[1].long_name ;     
                  }
                  
              }
+             
             })    
     
-    
+       return addressDetails;
+               
    
-        return addressDetails;
+       
 
 }
 
@@ -1085,42 +1243,6 @@ function ISO8601_time(){
 	
 }
  
-//Format the date to readable
-function formatDate(date) {
-  var hours = date.getHours();
-  var minutes = date.getMinutes();
-  var ampm = hours >= 12 ? 'pm' : 'am';
-  hours = hours % 12;
-  hours = hours ? hours : 12; // the hour '0' should be '12'
-  minutes = minutes < 10 ? '0'+minutes : minutes;
-  var strTime = hours + ':' + minutes + ' ' + ampm;
-  return date.getDate() + "/" + (date.getMonth()+1) + "/" + date.getFullYear() + "  " + strTime;
-}
-
-//Generate a new UID for the statement
-function generateUUID() {
-
-  var d = new Date().getTime();
-
-  if (window.performance && typeof window.performance.now === 'function') {
-
-    d += performance.now(); // Use high-precision timer if available
-
-  }
-
-  var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-
-    var r = (d + Math.random()*16)%16 | 0;
-
-    d = Math.floor(d / 16);
-
-    return (c=='x' ? r : (r&0x3|0x8)).toString(16);
-
-  });
-
-  return uuid;
-
-}
 
 
 
@@ -1174,46 +1296,7 @@ function Getdistance(lat1, lon1, lat2, lon2, unit) {
 	}
 }
 
-function isEmail(email) {
-  var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
-  return regex.test(email);
-}
 
-function GetBrowser() {
-  var _browser = "";
-  var isIE = false;
-  // Opera 8.0+
 
-  // Internet Explorer 6-11
-  if (/*@cc_on!@*/false || !!document.documentMode) {
-    _browser = "Internet Explorer";
-    isIE = true;
-  }
 
-  // Edge 20+
-  if (!isIE && !!window.StyleMedia) {
-    _browser = "Edge";
-  }
-
-  // Chrome 1+
-  if (!!window.chrome && !!window.chrome.webstore || /chrome/.test(navigator.userAgent.toLowerCase())) {
-    _browser = "Chrome";
-  }
-
-  if (/constructor/i.test(window.HTMLElement) || (function (p) { return p.toString() === "[object SafariRemoteNotification]"; })(!window['safari'] || safari.pushNotification)) {
-    _browser = "Safari";
-
-  }
-  return _browser;
-}
-
- // For todays date;
-Date.prototype.today = function () { 
-    return ((this.getDate() < 10)?"0":"") + this.getDate() +"/"+(((this.getMonth()+1) < 10)?"0":"") + (this.getMonth()+1) +"/"+ this.getFullYear();
-}
-
-// For the time now
-Date.prototype.timeNow = function () {
-     return ((this.getHours() < 10)?"0":"") + this.getHours() +":"+ ((this.getMinutes() < 10)?"0":"") + this.getMinutes() +":"+ ((this.getSeconds() < 10)?"0":"") + this.getSeconds();
-}   
     

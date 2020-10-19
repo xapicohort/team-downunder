@@ -36,19 +36,12 @@
 <script type="text/javascript" src="js/xapi/d3.v3.js" charset="utf-8"></script>
 <script type="text/javascript" src="js/xapi/nv.d3.js"></script>
 <script type="text/javascript" src="js/xapi/chart.js"></script>
-<script src="js/jquery.json-viewer.js"></script>
+<script src="js/helpers.js" type="text/javascript"></script>
   
 <style>
     
 			h1,h2,p {
 				text-align: center;
-			}
-			.container {
-				display: flex;
-				flex-direction: row;
-				flex-wrap: wrap;
-				justify-content: center;
-				align-items: center;
 			}
 			.graph svg {
 				width: 800px;
@@ -72,10 +65,30 @@ wrapper.changeConfig(conf);
 var dash = new ADL.XAPIDashboard();
 var data = "";    
 
-window.onload = function(){
-	// get all statements made in the last two weeks
-	var query = {'since': new Date(Date.now() - 1000*60*60*24*30).toISOString()};
-	dash.fetchAllStatements(query, fetchDoneCallback);
+    
+$(document).ready(function(){   
+    
+    
+    
+    var query = {'since': new Date(Date.now() - 1000*60*60*24*30).toISOString()};
+    
+    var ret = ADL.XAPIWrapper.getStatements();
+    var statements = new ADL.Collection(ret.statements);
+    
+    var actors = statements
+	// take all the statements for each actor
+	.groupBy('actor.name')
+	// get their best score
+	.max('result.score.raw')
+	// then sort the actors by those scores, high to low
+	.orderBy('max', 'descending')
+	// pick out only the first (highest) 10 scorers
+	.slice(0,10)
+	// and discard all the parts of the statements you won't be using
+	.select('group, max');
+    
+
+    dash.fetchAllStatements(query, fetchDoneCallback);
     
     var search = ADL.XAPIWrapper.searchParams();
     search['related_activities'] = "true";
@@ -83,14 +96,55 @@ window.onload = function(){
     search["since"] = query; /* Returns statements since Jan 1, 2020 */
 
     data = ADL.XAPIWrapper.getStatements(search);
-};
-
+    
+    if(data.more){
+        
+        $('#moreStatements').html('<p><button>View More</button></p>');
+    
+    }
+    $.each(data.statements, function(index,statement){
+                           try{
+            var html = "";
+            thedate = new Date(statement.timestamp);
+              
+            //Get GeoData     
+            var place  = 'Not known';                 
+            var geo = statement.context.extensions['http://id.tincanapi.com/extension/geojson'];
+            if(geo){
+                
+                place = geo.properties.name;
+                
+            }                    
+                               
+            html = "<div class='row'><div class='col-10'>User " + statement.actor.name + " " + statement.verb.display['en-US'] + " at " + place +" at " + formatDate(thedate) +"<div class='col-2'><button class='btn btn-sm btn-success showxAPI' data-xapi='"+JSON.stringify(statement)+"'>View More</button></div></div></div>";
+       
+            $('#statements').append(html);  
+              
+          }
+      catch(err){
+        console.log("There's an error fetching the data: " + err.message);  
+      
+      }
+      });    
+    
+$('body').on('click','.showxAPI',function(){
+    
+  var jsonPretty = JSON.stringify(JSON.parse($(this).attr('data-xapi')),null,2);  
+	
+    $('#mdlxAPI .modal-body').empty().html('<pre><code>'+jsonPretty+'</code></pre>');             
+    $("#mdlxAPI").modal();             
+                  
+                  
+    })
+})      
+    
 
     
+  
 function fetchDoneCallback(){
 	var chart = dash.createBarChart({
 		container: '#graphContainer svg',
-		groupBy: 'verb.id',
+		groupBy: "context.registration",
 		aggregate: ADL.count(),
 		customize: function(chart){
 			chart.xAxis.rotateLabels(45);
@@ -100,38 +154,6 @@ function fetchDoneCallback(){
 	chart.draw();
 
 
-$('#json-renderer').jsonViewer(data.statements, {collapsed: true, withQuotes: true, withLinks: false});  
-            /*dash.addStatements(data.statements);
-			
-			//We could have also added a "pre" option to each of the charts
-			dash.data.where('result.score.raw != null');
-			
-			//Add a table
-			var table = dash.createTable({
-				container: '#tableContainer',
-				groupBy: 'actor.name',
-				aggregate: ADL.min('result.score.raw')
-			});	
-			
-			//Add a table
-			var multiTable = dash.createTable({
-				container: '#multiTableContainer',
-				groupBy: 'actor.name',
-				aggregate: ADL.multiAggregate('result.score.raw', ADL.count, ADL.min, ADL.max, ADL.average, ADL.select('verb.display.en-US'), ADL.select('context.instructor.name'))
-			});						
-
-			//Add a multiBarChart
-			var multiBar = dash.createMultiBarChart({
-				container: '#multi',
-				groupBy: 'actor.name',
-				aggregate: ADL.multiAggregate('result.score.raw', ADL.min, ADL.max, ADL.average)
-			});
-
-			table.draw();
-			multiTable.draw();
-			multiBar.draw();
-			
-    */
     
 }
     
@@ -168,15 +190,34 @@ $('#json-renderer').jsonViewer(data.statements, {collapsed: true, withQuotes: tr
     
     </div>  
     <div class="container">
+    <div id="moreStatements"></div>    
     
     <div class="row">
-    <h1>Last 100 statements</h1>
-       <pre id="json-renderer"></pre>
-        </div>
+    <h1>statements</h1>
+        <div id="statements" class="col-12"></div>
+    </div>
     </div>
   
 
     
+    <div class="modal fade" tabindex="-1" role="dialog" id="mdlxAPI">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">xAPI Data</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+          
+          </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
 
     
 </body>
