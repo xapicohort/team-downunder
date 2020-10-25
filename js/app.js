@@ -15,6 +15,25 @@ var userOnly = false;
 var markersArray = [];
 var InfoWindowArray = [];
 var CirclesArray = [];
+var speechSupported = true;
+var crew = getParameterByName('crew'); 
+
+
+//* Setup Voice Recognition *//
+
+
+try {
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var recognition = new SpeechRecognition();
+}
+catch(e) {
+    console.log(e);
+    speechSupported = false;
+    $('.Message').addClass('alert alert-danger').html('<span style="text-align:center;font-weight:bolder">Your browser does not support speech to text so unable to place a voice activated xAPI Statement</span><br>Checkin to send a Manual MayDay<button id="btnMayDay" style="display:none" class="btn btn-danger btn-sm">Send Manual MayDay</button>').show();
+
+}
+
+
 
 //$('head').append('<script defer src="https://maps.googleapis.com/maps/api/js?key='+Config.googleMapsAPI+'"></script>');
 
@@ -90,6 +109,21 @@ locationPromise
      google.maps.event.addListener(map, 'click', function(event) {
          closeAllInfoWindows();
   });
+    
+    
+ //Check if the Crew is Set AND the html5 and checkin Straight away
+    
+    
+if(crew !== null && localStorage.getItem("rememberme")){
+    hasCheckedIn =true;
+    checkIn();
+    setButtons();
+    $('#btnLogin').hide();
+    
+    if(!speechSupported){$('#btnMayDay').show();}else{startRecording(false);}
+    
+}    
+    
     
   $("#loader").fadeOut("slow");    
   
@@ -170,10 +204,11 @@ $('#btnStart').on('click',function(e){
   
     
 //We're good, sop let's send the Initialised Statement 
-   hasCheckedIn = true;
+   if(speechSupported){startRecording(false);}else{ $('#btnMayDay').show();}
+    hasCheckedIn = true;
    userOnly = false;    
    setButtons();
-    var stmt = {"actor" : {"objectType":"Agent", "mbox" : "mailto:"+email,"name": name },
+    var stmt = {"actor" : getActor(),
             "verb" : {"id" : "http://adlnet.gov/expapi/verbs/initialized",
                       "display" : {"en-US" : "Initialized"}},
             "object" : { "id": Config.objectID,
@@ -249,8 +284,10 @@ $('#btnToggleCircle').on('click',function(){
 $('#btnCheckIn').on('click',function(e){
      e.stopPropagation();
      e.preventDefault();
-   $("#loader").show();   
+   
+    $("#loader").show(); 
     checkIn();
+   
    $("#loader").fadeOut("slow");   
     
 })
@@ -277,7 +314,7 @@ $('.incidentData').on('click',function(e){
             
             
               
-        var stmt = {"actor" : {"objectType":"Agent", "mbox" : "mailto:"+email,"name": name },
+        var stmt = {"actor" : getActor(),
             "verb" : {"id" : "http://activitystrea.ms/schema/1.0/at",
                       "display" : {"en-US" : "was at"}},
             "object" : { "id": Config.objectID,
@@ -410,7 +447,13 @@ simulateCheckin();
  $("#loader").fadeOut("slow");      
     
 })    
+ 
     
+$(document).on('click','#btnMayDay',function(){
+    
+    startRecording(true);
+    
+})    
  
 $(document).on('click','#btnSimCheckin',function(){
     
@@ -443,7 +486,7 @@ $(document).on('click','#btnSimCheckin',function(){
             
         setTimeout(function(){console.log('dummy wait 2')},500);    
               
-        var stmt = {"actor" : {"objectType":"Agent", "mbox" : "mailto:"+email,"name": name },
+        var stmt = {"actor" : getActor(),
             "verb" : {"id" : "http://activitystrea.ms/schema/1.0/at",
                       "display" : {"en-US" : "was at"}},
             "object" : { "id": Config.objectID,
@@ -548,7 +591,7 @@ function checkIn(){
     deleteOverlays();
     Circle.setMap(null);
     
-    var stmt = {"actor" : {"objectType":"Agent", "mbox" : "mailto:"+email,"name": name },
+    var stmt = {"actor" : getActor(),
             "verb" : {"id" : "http://activitystrea.ms/schema/1.0/checkin",
                       "display" : {"en-US" : "checked in"}},
             "object" : { "id": Config.objectID,
@@ -979,6 +1022,30 @@ if(userOnly && !hasCheckedIn){
     
 }
 
+function getActor(){
+    
+  var actor = {"objectType":"Agent", "mbox" : "mailto:"+email,"name": name};
+   
+    if(crew !== null){
+        actor = {
+                 "objectType" : "Group",
+                    "name": 'Crew   ' + crew,
+                 "member":[
+                     {
+                "objectType": "Agent",
+                "mbox" : "mailto:"+email,
+                 "name": name,     
+                     }
+                 ]};
+    }
+    
+    return actor;
+    
+    
+    
+}
+    
+    
 
 function toggleCircles(){
     
@@ -1004,7 +1071,7 @@ if(incidents.length <= 0){
 
 //Capture that the user ran a simulation
     
-     var stmt = {"actor" : {"objectType":"Agent", "mbox" : "mailto:"+email,"name": name },
+     var stmt = {"actor" : getActor(),
             "verb" : {"id" : "http://activitystrea.ms/schema/1.0/start",
                       "display" : {"en-US" : "started"}},
             "object" : { "id": Config.objectID,
@@ -1111,7 +1178,199 @@ map.setCenter(new google.maps.LatLng(NewPosition["latitude"], NewPosition["longi
     }
      
   
+function startRecording(byPass) {
 
+    if(byPass){
+        
+        
+        var LocationMD = reverseLookUp(geolocation.lat, geolocation.long);
+                      
+                      var stmt = {"actor" : getActor(),
+            "verb" : {"id" : "https://w3id.org/xapi/dod-isd/verbs/communicated",
+                      "display" : {"en-US" : "communicated"}},
+            "object" : { "id": Config.objectID,
+                          "objectType": "Activity",
+                              "definition": {
+                                "type": "http://activitystrea.ms/schema/1.0/alert",
+                                "name": {
+                                  "en-US": "MAYDAY MAYDAY MAYDAY - from  " + reverseLookUp(geolocation.lat, geolocation.long) +"(" + geolocation.lat +","+ geolocation.long +")",
+                                }
+                            }},
+                       "context":{
+                            "registration": contextReg,
+                            "contextActivities":{
+                                "category":{
+                                    "id":"https://w3id.org/xapi/application"
+                                }
+                            },
+                           "extensions": {
+                                "http://id.tincanapi.com/extension/latitude": geolocation.lat,
+                                "http://id.tincanapi.com/extension/longitude": geolocation.long,
+                               "http://id.tincanapi.com/extension/geojson":
+                                   {
+                                      "type": "Feature",
+                                      "geometry": {
+                                        "type": "Point",
+                                        "coordinates": [geolocation.lat, geolocation.long]
+                                      },
+                                      "properties": {
+                                        "name": LocationMD
+                                      }
+                                    },
+                               
+                               // We want to know the browser that the user is using, so we'll capture this too
+                                "http://id.tincanapi.com/extension/browser-info": {
+                                  "name": {
+                                    "en-US": "browser information"
+                                  },
+                                  "description": {
+                                    "code_name": navigator.appCodeName,
+                                    "name": GetBrowser(),
+                                    "version": navigator.appVersion,
+                                    "platform": navigator.platform,
+                                    "user-agent-header": navigator.userAgent,
+                                    "cookies-enabled": navigator.cookieEnabled
+                                  }
+                                }
+                                
+                        }
+               }
+            }
+                        
+                
+   
+   //Send the Statement to the LRS
+   console.log(stmt);            
+   var resp_obj = ADL.XAPIWrapper.sendStatement(stmt);      
+      //Plot this on the map as a May Day
+                      
+        var marker = new google.maps.Marker({position: currentLocation, map: map, icon: scaleImg(iconBase + 'mapbox-icon_mayday.png'), title: name + " sent a MAYDAY request from " + LocationMD});
+        markersArray.push(marker);
+
+        infowindow = new google.maps.InfoWindow({
+        content: name + " sent a MAYDAY call from " + LocationMD + ". <br/>Latitiude: " + geolocation.lat +"<br/>Longitude: "+ geolocation.long + " <br>Date and Time: " + new Date().today() + " @ " + new Date().timeNow()
+        });
+        InfoWindowArray.push(infowindow);
+
+
+        marker.addListener("click", () => {
+        infowindow.open(map, marker);
+        });   
+   
+            return;
+    
+        
+        }
+        
+        
+        
+        
+        
+    
+    
+    
+    
+    recognition.onstart = function() {
+        setTimeout(() => {
+            console.log("Started Recorder");
+        }, 1000);
+    }
+    recognition.onresult = function(event) {
+        
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+            var text = event.results[i][0].transcript.toLowerCase();
+                  if(text.indexOf('mayday mayday mayday') !==-1 && event.results[i].isFinal)   {
+        
+                      var LocationMD = reverseLookUp(geolocation.lat, geolocation.long);
+                      
+                      var stmt = {"actor" : getActor(),
+            "verb" : {"id" : "https://w3id.org/xapi/dod-isd/verbs/communicated",
+                      "display" : {"en-US" : "communicated"}},
+            "object" : { "id": Config.objectID,
+                          "objectType": "Activity",
+                              "definition": {
+                                "type": "http://activitystrea.ms/schema/1.0/alert",
+                                "name": {
+                                  "en-US": "MAYDAY MAYDAY MAYDAY - from  " + reverseLookUp(geolocation.lat, geolocation.long) +"(" + geolocation.lat +","+ geolocation.long +")",
+                                }
+                            }},
+                       "context":{
+                            "registration": contextReg,
+                            "contextActivities":{
+                                "category":{
+                                    "id":"https://w3id.org/xapi/application"
+                                }
+                            },
+                           "extensions": {
+                                "http://id.tincanapi.com/extension/latitude": geolocation.lat,
+                                "http://id.tincanapi.com/extension/longitude": geolocation.long,
+                               "http://id.tincanapi.com/extension/geojson":
+                                   {
+                                      "type": "Feature",
+                                      "geometry": {
+                                        "type": "Point",
+                                        "coordinates": [geolocation.lat, geolocation.long]
+                                      },
+                                      "properties": {
+                                        "name": LocationMD
+                                      }
+                                    },
+                               
+                               // We want to know the browser that the user is using, so we'll capture this too
+                                "http://id.tincanapi.com/extension/browser-info": {
+                                  "name": {
+                                    "en-US": "browser information"
+                                  },
+                                  "description": {
+                                    "code_name": navigator.appCodeName,
+                                    "name": GetBrowser(),
+                                    "version": navigator.appVersion,
+                                    "platform": navigator.platform,
+                                    "user-agent-header": navigator.userAgent,
+                                    "cookies-enabled": navigator.cookieEnabled
+                                  }
+                                }
+                                
+                        }
+               }
+            }
+                        
+                
+   
+   //Send the Statement to the LRS
+   console.log(stmt);            
+   var resp_obj = ADL.XAPIWrapper.sendStatement(stmt);      
+      //Plot this on the map as a May Day
+                      
+        var marker = new google.maps.Marker({position: currentLocation, map: map, icon: scaleImg(iconBase + 'mapbox-icon_mayday.png'), title: name + " sent a MAYDAY request from " + LocationMD});
+        markersArray.push(marker);
+
+        infowindow = new google.maps.InfoWindow({
+        content: name + " sent a MAYDAY call from " + LocationMD + ". <br/>Latitiude: " + geolocation.lat +"<br/>Longitude: "+ geolocation.long + " <br>Date and Time: " + new Date().today() + " @ " + new Date().timeNow()
+        });
+        InfoWindowArray.push(infowindow);
+
+
+        marker.addListener("click", () => {
+        infowindow.open(map, marker);
+        });   
+   
+        } else {
+          //console.log(event.results[i][0].transcript);
+        }
+            
+        }
+    }
+    recognition.start();
+
+        recognition.onend = function() {
+        setTimeout(() => {
+            console.log("Recording Has Stopped");
+        }, 10000);
+       
+    }
+    
+}
 
 
 //returns a lat an long that can be plotted next to a random marker

@@ -99,7 +99,7 @@ $(document).ready(function(){
     
     if(data.more){
         
-        $('#moreStatements').html('<p><button>View More</button></p>');
+       // $('#moreStatements').html('<p><button>View More</button></p>');
     
     }
     $.each(data.statements, function(index,statement){
@@ -112,11 +112,13 @@ $(document).ready(function(){
             var geo = statement.context.extensions['http://id.tincanapi.com/extension/geojson'];
             if(geo){
                 
-                place = geo.properties.name;
+                place = " at " + geo.properties.name;
                 
             }                    
-                               
-            html = "<div class='row'><div class='col-10'>User " + statement.actor.name + " " + statement.verb.display['en-US'] + " at " + place +" at " + formatDate(thedate) +"<div class='col-2'><button class='btn btn-sm btn-success showxAPI' data-xapi='"+JSON.stringify(statement)+"'>View More</button></div></div></div>";
+            if(statement.verb.display['en-US'] === 'communicated'){
+              place = " " + statement.object.definition.name['en-US'];  
+            }                   
+            html = "<div class='row'><div class='col-10'>User " + statement.actor.name + " " + statement.verb.display['en-US']  + place +" at " + formatDate(thedate) +"<div class='col-2'><button class='btn btn-sm btn-success showxAPI' data-xapi='"+JSON.stringify(statement)+"'>View More</button></div></div></div>";
        
             $('#statements').append(html);  
               
@@ -144,7 +146,7 @@ $('body').on('click','.showxAPI',function(){
 function fetchDoneCallback(){
 	var chart = dash.createBarChart({
 		container: '#graphContainer svg',
-		groupBy: "context.registration",
+		groupBy: "verb.id",
 		aggregate: ADL.count(),
 		customize: function(chart){
 			chart.xAxis.rotateLabels(45);
