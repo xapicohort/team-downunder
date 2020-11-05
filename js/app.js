@@ -108,19 +108,6 @@ node.addEventListener("touchcancel", cancel);
 
  var iconBase = Config.rootURL +'/images/';
 
-     var icons = {
-          mylocation: {
-            icon: iconBase + 'mapbox-icon_you.png'
-          },
-          otherlocation: {
-            icon: iconBase + 'mapbox-icon_incident.png'
-          },
-          incident: {
-            icon: iconBase + 'mapbox-icon_other.png'
-          }
-        };
-
-
  
 //This stops the right click in Google Maps to only show the Simulation
 window.onload = (function(){
@@ -152,7 +139,7 @@ locationPromise
    
        // Initialize and add the map
      currentLocation = {lat: geolocation["lat"], lng: geolocation["long"]};
-    $('#btnLogin').show();
+     $('#btnLogin').show();
       geocoder = new google.maps.Geocoder();
       map = new google.maps.Map(document.getElementById('map'), {zoom: 8, center: currentLocation,gestureHandling: "cooperative",});
     
@@ -163,12 +150,8 @@ locationPromise
      infowindow = new google.maps.InfoWindow({
                 content: "<b>You are here</b><br />"
               });
-        InfoWindowArray.push(infowindow);
+     InfoWindowArray.push(infowindow);
       
-    
-   
-    
-    
     marker.addListener("click", () => {
             infowindow.open(map, marker);
           });   
@@ -221,15 +204,26 @@ if(crew !== null && localStorage.getItem("rememberme")){
     //Load the Simulation
     loadSimulation(SimResults[simID]);
      
-     
-    //hasCheckedIn =true;
-    //checkIn();
-    //setButtons();
-    //$('#btnLogin').hide();
-    //$('#btnMayDay').show();
+   
     
 }    
+
+if(crew !== null && simID !== null && localStorage.getItem("rememberme")){
+    //Load the Simulation
+    hasCheckedIn =true;
+    checkIn();
+    setButtons();
+    $('#btnLogin').hide();
+    $('#btnMayDay').show();
     
+     loadSimulation(SimResults[simID]);
+   
+    try{
+    if(speechSupported){startRecording(false);}
+    }catch(er){}
+    
+}    
+
     
   $("#loader").fadeOut("slow");    
   
@@ -759,38 +753,43 @@ function makeQRCode () {
 	height : 150
     });
 	var url = Config.rootURL+'/index.html?simID='+ $('.simID:checked').val()+'&crew='+$('#crewName').val();
-    $('#qrcodeURL').empty().html('<a href="'+url+' target="_blank">'+url+'</a>');
+    $('#qrcodeURL').empty().html('<a href="'+url+'" target="_blank">'+url+'</a>');
 	qrcode.makeCode(url);
 }
 
 
 function loadSimulation(simulation){
     
-     $("#loader").show(); 
     
+  
+    
+     $("#loader").show(); 
+    //Clear markers
+
      var sim = simulation;
-     
+    
     //Clear circles    
     
 Circle.setMap(null);
 CirclesArray = [];  
     
 //plot new location
-var newLocation = [];    
+    var SimLocation = []; 
  SimLocation = {lat: parseFloat(sim.lat), lng: parseFloat(sim.long)};
     
       var marker = new google.maps.Marker({position: SimLocation, map: map, icon: scaleImg(iconBase + 'mapbox-icon_sim.png'), title: "<b>"+sim.title+" at " +sim.location + "</b><br />"});
     markersArray.push(marker);
     
-     infowindow = new google.maps.InfoWindow({
-                content: "<div style='text-align:left'><div style='font-size:14pt;font-weight:bold'>Simulated Incident<br/></div><p>"+sim.location+" <br>Incident:"+sim.incident+"<br>Resources:"+sim.resources+" <br>Details:"+sim.descrip+"</p><p>Created:"+sim.created+"</div></div>",
+     const infowindow = new google.maps.InfoWindow({
+                content: "<div style='text-align:left'><div style='font-size:14pt;font-weight:bold'>Simulated Incident<br/></div><p>"+sim.location+" <br>Incident:"+sim.incident+"<br>Resources:"+sim.resources+" <br>Details:"+sim.descrip+"</p><p>Created:"+sim.created+"</div></div>"    
               });
-        InfoWindowArray.push(infowindow);
-            infowindow.open(map, marker);
+        InfoWindowArray.push(infowindow)
+        infowindow.open(map, marker);
     
     marker.addListener("click", () => {
             infowindow.open(map, marker);
           });   
+    
     
     Circle = new google.maps.Circle({
       strokeColor: '#FF0000',
@@ -801,7 +800,7 @@ var newLocation = [];
       map: map,
      clickable: false,    
       center: SimLocation,
-      radius: parseInt(Config.radius) //in meters
+      radius: parseFloat(sim.radius) //in meters
     });
     
     CirclesArray.push(Circle);
