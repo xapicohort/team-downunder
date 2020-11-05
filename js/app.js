@@ -1,6 +1,5 @@
 var geolocation = {};
 var incidents =[];
-var Config;
 var name = "";
 var email = "";
 var session_id = generateUUID();
@@ -17,8 +16,13 @@ var InfoWindowArray = [];
 var CirclesArray = [];
 var speechSupported = true;
 var crew = getParameterByName('crew'); 
-
-
+var node = document.getElementById("btnMayDay");
+var longpress = false;
+var presstimer = null;
+var longtarget = null;
+var SimulationsJSON = null;
+var SimResults ='';
+var simID =getParameterByName('simID');
 //* Setup Voice Recognition *//
 
 
@@ -29,11 +33,74 @@ try {
 catch(e) {
     console.log(e);
     speechSupported = false;
-    $('.Message').addClass('alert alert-danger').html('<span style="text-align:center;font-weight:bolder">Your browser does not support speech to text so unable to place a voice activated xAPI Statement</span><br>Checkin to send a Manual MayDay<button id="btnMayDay" style="display:none" class="btn btn-danger btn-sm">Send Manual MayDay</button>').show();
+    $('.SpeechMessage').show();
 
 }
 
 
+
+//Check for long press on MayDay Button
+
+var cancel = function(e) {
+    if (presstimer !== null) {
+        clearTimeout(presstimer);
+        presstimer = null;
+    }
+    
+    this.classList.remove("longpress");
+};
+
+var click = function(e) {
+    if (presstimer !== null) {
+        clearTimeout(presstimer);
+        presstimer = null;
+    }
+    
+    this.classList.remove("longpress");
+    if (longpress) {
+        return false;
+    }
+  
+};
+
+var start = function(e) {
+    console.log(e);
+    
+    if (e.type === "click" && e.button !== 0) {
+        return;
+    }
+    
+    longpress = false;
+    
+    this.classList.add("longpress");
+    this.classList.add("active");
+    
+    
+    presstimer = setTimeout(function() {
+        
+        longpress = true;
+        startRecording(true);
+        
+        
+    }, 2000);
+    
+    return false;
+};
+
+node.addEventListener("mousedown", start);
+node.addEventListener("touchstart", start);
+node.addEventListener("click", click);
+node.addEventListener("mouseout", cancel);
+node.addEventListener("touchend", cancel);
+node.addEventListener("touchleave", cancel);
+node.addEventListener("touchcancel", cancel);
+
+
+
+
+
+
+/*End Long Press */
 
 //$('head').append('<script defer src="https://maps.googleapis.com/maps/api/js?key='+Config.googleMapsAPI+'"></script>');
 
@@ -55,11 +122,25 @@ catch(e) {
 
 
  
+//This stops the right click in Google Maps to only show the Simulation
+window.onload = (function(){
+    document.addEventListener("mouseup", function(evt){
+        evt.preventDefault();
+        evt.stopPropagation();
+    });
+    document.addEventListener("contextmenu", function(evt){
+      evt.preventDefault();
+      evt.stopPropagation();
+  });
+})();
+
+
 
 $(document).ready(function(){
 
     
 setButtons(); 
+    
     
     
  var locationPromise = getLocation();
@@ -83,7 +164,10 @@ locationPromise
                 content: "<b>You are here</b><br />"
               });
         InfoWindowArray.push(infowindow);
-            
+      
+    
+   
+    
     
     marker.addListener("click", () => {
             infowindow.open(map, marker);
@@ -110,6 +194,13 @@ locationPromise
          closeAllInfoWindows();
   });
     
+ google.maps.event.addListener(map, 'rightclick', function (ev) {
+     showAddSimulator(ev);
+}); 
+   
+ getSimEntries();    
+    
+    
     
  //Check if the Crew is Set AND the html5 and checkin Straight away
     
@@ -119,8 +210,23 @@ if(crew !== null && localStorage.getItem("rememberme")){
     checkIn();
     setButtons();
     $('#btnLogin').hide();
+    $('#btnMayDay').show();
+    if(speechSupported){startRecording(false);}
     
-    if(!speechSupported){$('#btnMayDay').show();}else{startRecording(false);}
+} 
+    
+//Load the Simulation on QR code     
+    
+ if(crew !== null && simID !== null){
+    //Load the Simulation
+    loadSimulation(SimResults[simID]);
+     
+     
+    //hasCheckedIn =true;
+    //checkIn();
+    //setButtons();
+    //$('#btnLogin').hide();
+    //$('#btnMayDay').show();
     
 }    
     
@@ -139,6 +245,10 @@ $.each(exDataSrc, function(key, value){
 
 
 })
+    
+    
+ 
+    
 
 //Load Config Data
     
@@ -292,7 +402,10 @@ $('#btnCheckIn').on('click',function(e){
     
 })
 
-  
+
+
+    
+    
 //Update the map based on the test location
 $('.incidentData').on('click',function(e){
     $("#loader").show();   
@@ -404,6 +517,27 @@ $('#btnsaveSettings').on('click',function(){
 
     
 })    
+    
+    
+$('#btnSaveSim').on('click',function(){
+    
+       $('#Simmessage').hide();
+    
+if($('#incidentType').val()=='' || $('#simresources').val()=='' || $('#simradius').val()=='' || $('#incidentDescrip').val()==''){
+    
+    $('#Simmessage').empty().html('Please complete all fields').slideDown().delay(3000).slideUp();
+    
+    return;
+    
+} 
+    
+    
+    setSimEntry();
+    $('#mdladdSimulation').modal('hide');
+    //Get the Simulations
+    getSimEntries();
+    
+})    
  
     
 //get all the users that haev checked in (looking at initislised verb) in last 24 hours    
@@ -449,11 +583,7 @@ simulateCheckin();
 })    
  
     
-$(document).on('click','#btnMayDay',function(){
-    
-    startRecording(true);
-    
-})    
+   
  
 $(document).on('click','#btnSimCheckin',function(){
     
@@ -570,9 +700,125 @@ $(document).on('click','#btnSimCheckin',function(){
     $(this).hide();  
     
 })    
+ 
+$('#lat').val('');
+$('#long').val('');
+$('#incidentType').val('');
+$('#location').val('');
+$('#simresources').val('');
+$('#simradius').val('50000');
+$('#simtitle').val('');
+$('#incidentDescrip').val('');
+  
+    
+//Filter Simulations
+    
+$('#txt-search').keyup(function(){
+//Clear content
+    $('#qrcode').empty();
+    $('#qrcodeURL').empty();
+getSimEntries();
+    var searchField = $(this).val();
+    if(searchField === '')  {
+        $('#filter-records').html('');
+        return;
+    }
+
+    var regex = new RegExp(searchField, "i");
+    var output = '';
+    var count = 1;
+      $.each(SimResults, function(key, val){
+        if ((val.title.search(regex) != -1) || (val.descrip.search(regex) != -1) || (val.location.search(regex) != -1)) {
+          output += '<div class="row"><div class="col-md-4"><div class="form-group" ><label><h5>' + val.title+'</h5></label>';
+          output += '<input type="radio" class="form-control simID"  name="simID" value="'+key+'"></div></div>' ;
+          output += '<div class="col-md-8">' + val.location;
+          output += '<p>' + val.descrip + '</p></div>'
+          output += '</div></div><hr>';
+          count++;
+        }
+      });
+      $('#filter-records').html(output);
+});
+  
+    
+$('#btnGetQRCode').on('click',function(){
+    
+    makeQRCode();
+    
+})    
     
 })
 
+
+
+function makeQRCode () {	
+    
+    //Build the URL based on Sim Id and Crew
+    var qrcode = new QRCode(document.getElementById("qrcode"), {
+	width : 150,
+	height : 150
+    });
+	var url = Config.rootURL+'/index.html?simID='+ $('.simID:checked').val()+'&crew='+$('#crewName').val();
+    $('#qrcodeURL').empty().html('<a href="'+url+' target="_blank">'+url+'</a>');
+	qrcode.makeCode(url);
+}
+
+
+function loadSimulation(simulation){
+    
+     $("#loader").show(); 
+    
+     var sim = simulation;
+     
+    //Clear circles    
+    
+Circle.setMap(null);
+CirclesArray = [];  
+    
+//plot new location
+var newLocation = [];    
+ SimLocation = {lat: parseFloat(sim.lat), lng: parseFloat(sim.long)};
+    
+      var marker = new google.maps.Marker({position: SimLocation, map: map, icon: scaleImg(iconBase + 'mapbox-icon_sim.png'), title: "<b>"+sim.title+" at " +sim.location + "</b><br />"});
+    markersArray.push(marker);
+    
+     infowindow = new google.maps.InfoWindow({
+                content: "<div style='text-align:left'><div style='font-size:14pt;font-weight:bold'>Simulated Incident<br/></div><p>"+sim.location+" <br>Incident:"+sim.incident+"<br>Resources:"+sim.resources+" <br>Details:"+sim.descrip+"</p><p>Created:"+sim.created+"</div></div>",
+              });
+        InfoWindowArray.push(infowindow);
+            infowindow.open(map, marker);
+    
+    marker.addListener("click", () => {
+            infowindow.open(map, marker);
+          });   
+    
+    Circle = new google.maps.Circle({
+      strokeColor: '#FF0000',
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: '#FF0000',
+      fillOpacity: 0,
+      map: map,
+     clickable: false,    
+      center: SimLocation,
+      radius: parseInt(Config.radius) //in meters
+    });
+    
+    CirclesArray.push(Circle);
+    
+    map.setOptions({ minZoom: 5, maxZoom: 15 });    
+//update the circle and send simulated
+  
+    
+//Zoom to location
+map.setZoom(8);      // This will trigger a zoom_changed on the map
+map.setCenter(new google.maps.LatLng(sim.lat, sim.long));
+
+    
+$('#loader').hide();    
+    
+    
+}  
 
 //Execute a checkin
 function checkIn(){
@@ -892,11 +1138,6 @@ function plotPointGoogleMaps(theDate, Title, lat, long, attachments,map){
     
 }
 
-
-
-
-
-
 function getIncidentData(dataObject){
     incidents = [];
    $.ajax({
@@ -930,7 +1171,87 @@ function getIncidentData(dataObject){
     
     
 }
-          
+
+
+function showAddSimulator(ev){
+    
+    //Claer all fields
+$('#lat').val('');
+$('#long').val('');
+$('#incidentType').val('');
+$('#location').val('');
+$('#simresources').val('1');
+$('#simradius').val('50000');
+$('#simtitle').val('');
+$('#incidentDescrip').val('');
+    
+    
+     var latlng = ev.latLng.toJSON()
+            $(".modal-body #lat").val( latlng['lat'] );
+            $(".modal-body #long").val( latlng['lng'] );
+                var theLocation = reverseLookUp(latlng['lat'],latlng['lng']);
+            $(".modal-body #location").val(theLocation);
+            $(".modal-body .location").html(theLocation);
+     
+            $('#mdladdSimulation').modal('show')
+    
+    
+}
+    
+
+function getSimEntries(){
+     $.ajax({
+             async: false,
+             type: 'GET',
+             dataType: 'json',
+             data: {'action':'get'},
+             url: Config.rootURL+'/sim.php',
+             success: function(result){
+                    SimResults = result;
+                    
+              }
+        }) 
+    
+    
+    
+}
+
+function setSimEntry(){
+       
+    
+    
+    
+var data = { 'lat':$('#lat').val(),
+'long':$('#long').val(),
+'incidentType':$('#incidentType').val(),
+'location':$('#location').val(),
+'simresources':$('#simresources').val(),
+'simradius':$('#simradius').val(),
+'simtitle': $('#simtitle').val(),
+'action':'set',
+'incidentDescrip':$('#incidentDescrip').val()
+};
+   
+    $.ajax({
+             async: false,
+             type: 'GET',
+             dataType: 'json',
+             data: data,
+             url: Config.rootURL+'/sim.php',
+             success: function(result){
+                     //saved so update the Config details
+                 
+                     Config = result;
+                 
+              }
+        }) 
+    
+    
+    
+}
+
+
+
 function setConfig(){
     
 var data = { 'endpoint':$('#endpoint').val(),
