@@ -814,6 +814,98 @@ map.setZoom(8);      // This will trigger a zoom_changed on the map
 map.setCenter(new google.maps.LatLng(sim.lat, sim.long));
 
     
+    //Check if the current location of the user is within the bounds of the simulaton
+    
+    
+var distance = Getdistance(currentLocation.lat,currentLocation.lng,sim.lat,sim.long,'K');
+        //want to make sure the user has checkedin before sending this data
+            
+        if(parseFloat(distance) <= parseFloat(sim.radius)){ 
+            
+            
+              
+        var stmt = {"actor" : getActor(),
+            "verb" : {"id" : "http://activitystrea.ms/schema/1.0/start",
+                      "display" : {"en-US" : "started"}},
+            "object" : { "id": Config.objectID,
+                          "objectType": "Activity",
+                              "definition": {
+                                "type": "http://adlnet.gov/exapi/activties/simulation",
+                                "name": {
+                                  "en-US": "ESxAPI Simulation at " + reverseLookUp(currentLocation.lat, currentLocation.lng) +" and was within " +sim.radius/1000 +"kms ( actual " + Math.round(distance) + " kms) of an Simulated incident at " + reverseLookUp(sim.lat,sim.long) +"("+ sim.lat +","+sim.long+")"
+                        }
+                            }},
+                       "context":{
+                      "registration": contextReg,
+                            "contextActivities":{
+                                "category":{
+                                    "id":"https://w3id.org/xapi/application"
+                                }
+                            },
+                           "extensions": {
+                                "http://id.tincanapi.com/extension/latitude": currentLocation.lat,
+                                "http://id.tincanapi.com/extension/longitude": currentLocation.lng,
+                                "http://id.tincanapi.com/extension/measurement": distance,
+                                "http://id.tincanapi.com/extension/geojson":
+                               {
+                                  "type": "FeatureCollection",
+                                  "features": [
+                                    {
+                                      "type": "Feature",
+                                      "geometry": {
+                                        "type": "Point",
+                                        "coordinates": [ currentLocation.lat, currentLocation.lng ]
+                                      },
+                                      "properties": {
+                                        "name": reverseLookUp(currentLocation.lat, currentLocation.lng),
+                                        "distanceToIncident": Math.round(Getdistance(geolocation.lat, geolocation.long,sim.lat, sim.long,"K"))+"kms",  
+                                      }
+                                    },
+                                    {
+                                      "type": "Feature",
+                                      "geometry": {
+                                        "type": "Point",
+                                        "coordinates": [ sim.lat, sim.long]
+                                      },
+                                        "properties": {
+                                        "name": sim.incident + ' at ' + sim.location,
+                                        "description": sim.descrip,
+                                        "distanceFromUser": Math.round(Getdistance(currentLocation.lat, currentLocation.lng,sim.lat, sim.long,"K"))+"kms",
+                                      }
+                                 },
+                                  ]
+                                },    
+                               "http://id.tincanapi.com/extension/browser-info": {
+                                  "name": {
+                                    "en-US": "browser information"
+                                  },
+                                  "description": {
+                                    "code_name": navigator.appCodeName,
+                                    "name": GetBrowser(),
+                                    "version": navigator.appVersion,
+                                    "platform": navigator.platform,
+                                    "user-agent-header": navigator.userAgent,
+                                    "cookies-enabled": navigator.cookieEnabled
+                                  }
+                                }
+                                
+                        },
+                        }};
+    
+    
+   
+   
+   //Send the Statement to the LRS
+   console.log(stmt);            
+   var resp_obj = ADL.XAPIWrapper.sendStatement(stmt);
+  // console.log(resp_obj);            
+        }
+    
+    
+    
+    
+    
+    
 $('#loader').hide();    
     
     
