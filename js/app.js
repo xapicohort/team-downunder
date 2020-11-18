@@ -106,7 +106,7 @@ node.addEventListener("touchcancel", cancel);
 
 
 
- var iconBase = Config.rootURL +'/images/';
+ var iconBase = sessionStorage.getItem('rootURL') +'/images/';
 
  
 //This stops the right click in Google Maps to only show the Simulation
@@ -127,7 +127,6 @@ $(document).ready(function(){
 
     
 setButtons(); 
-    
     
     
  var locationPromise = getLocation();
@@ -182,10 +181,11 @@ locationPromise
 }); 
    
  getSimEntries();    
+ showInitialTour();    
+  
     
     
-    
- //Check if the Crew is Set AND the html5 and checkin Straight away
+ //Check if the Crew is Set AND the Simulation and checkin Straight away
     
     
 if(crew !== null && localStorage.getItem("rememberme")){
@@ -195,7 +195,7 @@ if(crew !== null && localStorage.getItem("rememberme")){
     $('#btnLogin').hide();
     $('#btnMayDay').show();
     if(speechSupported){startRecording(false);}
-    
+    showLoggedInTour();
 } 
     
 //Load the Simulation on QR code     
@@ -203,7 +203,7 @@ if(crew !== null && localStorage.getItem("rememberme")){
  if(crew !== null && simID !== null){
     //Load the Simulation
     loadSimulation(SimResults[simID]);
-     
+    showLoggedInTour(); 
    
     
 }    
@@ -216,8 +216,8 @@ if(crew !== null && simID !== null && localStorage.getItem("rememberme")){
     $('#btnLogin').hide();
     $('#btnMayDay').show();
     
-     loadSimulation(SimResults[simID]);
-   
+   loadSimulation(SimResults[simID]);
+   showLoggedInTour();
     try{
     if(speechSupported){startRecording(false);}
     }catch(er){}
@@ -249,7 +249,7 @@ $.each(exDataSrc, function(key, value){
 $('#endpoint').val(Config.endpoint);
 $('#authkey').val(Config.authkey);
 $('#objectID').val(Config.objectID);
-$('#rootURL').val(Config.rootURL);
+$('#rootURL').val(sessionStorage.getItem('rootURL'));
 $('#dashboard').val(Config.dashboard);
 $('#radius').val(Config.radius);
 $('#GoogleMapsKey').val(Config.googleMapsAPI);
@@ -365,7 +365,7 @@ $('#btnStart').on('click',function(e){
    var resp_obj = ADL.XAPIWrapper.sendStatement(stmt);
     $('#mdlLogin').modal('hide')
     $('#btnLogin').hide();
-    
+    showLoggedInTour();
 })                  
  
 //Show hide Circle
@@ -429,7 +429,7 @@ $('.incidentData').on('click',function(e){
                               "definition": {
                                 "type": "http://activitystrea.ms/schema/1.0/place",
                                 "name": {
-                                  "en-US": reverseLookUp(geolocation.lat, geolocation.long) +" and was within " +Config.radius+"kms ( actual " + Math.round(distance) + " kms) of an incident at " + reverseLookUp(value.lat,value.long) +"("+ value.long +","+value.long+")"
+                                  "en-US": " " + reverseLookUp(geolocation.lat, geolocation.long) +" and was within " +Config.radius+"kms ( actual " + Math.round(distance) + " kms) of an incident at " + reverseLookUp(value.lat,value.long) +"("+ value.long +","+value.long+")"
                         }
                             }},
                        "context":{
@@ -577,7 +577,11 @@ simulateCheckin();
 })    
  
     
-   
+$(document).on('click','.simID',function(){
+    
+   $('#qrcode').empty();
+   $('#qrcodeURL').empty().hide();
+}) 
  
 $(document).on('click','#btnSimCheckin',function(){
     
@@ -618,7 +622,7 @@ $(document).on('click','#btnSimCheckin',function(){
                               "definition": {
                                 "type": "http://activitystrea.ms/schema/1.0/place",
                                 "name": {
-                                    "en-US": descObject
+                                    "en-US": " " + descObject
                                 }
                             }},
                        "context":{
@@ -709,9 +713,9 @@ $('#incidentDescrip').val('');
     
 $('#txt-search').keyup(function(){
 //Clear content
-    $('#qrcode').empty();
-    $('#qrcodeURL').empty();
-getSimEntries();
+    $('#qrcode').empty().hide();
+    $('#qrcodeURL').empty().hide();
+    getSimEntries();
     var searchField = $(this).val();
     if(searchField === '')  {
         $('#filter-records').html('');
@@ -722,6 +726,9 @@ getSimEntries();
     var output = '';
     var count = 1;
       $.each(SimResults, function(key, val){
+          if(count > 5){
+              return;
+          }
         if ((val.title.search(regex) != -1) || (val.descrip.search(regex) != -1) || (val.location.search(regex) != -1)) {
           output += '<div class="row"><div class="col-md-4"><div class="form-group" ><label><h5>' + val.title+'</h5></label>';
           output += '<input type="radio" class="form-control simID"  name="simID" value="'+key+'"></div></div>' ;
@@ -738,6 +745,7 @@ getSimEntries();
 $('#btnGetQRCode').on('click',function(){
     
     makeQRCode();
+    $('#qrcode').show();
     
 })    
     
@@ -752,8 +760,8 @@ function makeQRCode () {
 	width : 150,
 	height : 150
     });
-	var url = Config.rootURL+'/index.html?simID='+ $('.simID:checked').val()+'&crew='+$('#crewName').val();
-    $('#qrcodeURL').empty().html('<a href="'+url+'" target="_blank">'+url+'</a>');
+	var url = sessionStorage.getItem('rootURL')+'/index.html?simID='+ $('.simID:checked').val()+'&crew='+$('#crewName').val();
+    $('#qrcodeURL').empty().html('<a href="'+url+'" target="_blank">'+url+'</a>').show();
 	qrcode.makeCode(url);
 }
 
@@ -832,7 +840,7 @@ var distance = Getdistance(currentLocation.lat,currentLocation.lng,sim.lat,sim.l
                               "definition": {
                                 "type": "http://adlnet.gov/exapi/activties/simulation",
                                 "name": {
-                                  "en-US": "ESxAPI Simulation at " + reverseLookUp(currentLocation.lat, currentLocation.lng) +" and was within " +sim.radius/1000 +"kms ( actual " + Math.round(distance) + " kms) of an Simulated incident at " + reverseLookUp(sim.lat,sim.long) +"("+ sim.lat +","+sim.long+")"
+                                  "en-US": " ESxAPI Simulation at " + reverseLookUp(currentLocation.lat, currentLocation.lng) +" and was within " +sim.radius/1000 +"kms ( actual " + Math.round(distance) + " kms) of an Simulated incident at " + reverseLookUp(sim.lat,sim.long) +"("+ sim.lat +","+sim.long+")"
                         }
                             }},
                        "context":{
@@ -936,7 +944,7 @@ function checkIn(){
                               "definition": {
                                 "type": "http://activitystrea.ms/schema/1.0/place",
                                 "name": {
-                                  "en-US": "Was at  " + reverseLookUp(geolocation.lat, geolocation.long) +"(" + geolocation.lat +","+ geolocation.long +")",
+                                  "en-US": " to " + reverseLookUp(geolocation.lat, geolocation.long) +"(" + geolocation.lat +","+ geolocation.long +")",
                                 }
                             }},
                        "context":{
@@ -1039,8 +1047,8 @@ function getAllUsers(){
     
     //xapiResults
     var search = ADL.XAPIWrapper.searchParams();
-    search['related_activities'] = "true";
-    search['verb'] = "http://adlnet.gov/expapi/verbs/initialized";
+    search['verb'] = "http://activitystrea.ms/schema/1.0/checkin";
+    
     
     //xapiResults
     search["since"] = Last24Hours; /* Returns statements since Jan 1, 2020 */
@@ -1189,7 +1197,16 @@ function deleteOverlays() {
     }
     markersArray.length = 0;
   }
+if (InfoWindowArray) {
+    for (y in InfoWindowArray) {
+      InfoWindowArray[y].setMap(null);
+    }
+    InfoWindowArray.length = 0;
+  }
+        
+    
 }
+
 function plotPointGoogleMaps(theDate, Title, lat, long, attachments,map){
         
     
@@ -1232,7 +1249,7 @@ function plotPointGoogleMaps(theDate, Title, lat, long, attachments,map){
 function getIncidentData(dataObject){
     incidents = [];
    $.ajax({
-     url: Config.rootURL+'/getgeorss.php',
+     url: sessionStorage.getItem('rootURL')+'/getgeorss.php',
      data:{ url:dataObject.dataURL, shortName: dataObject.shortName, format: dataObject.format},
      type:'GET',
      dataType:'json',
@@ -1296,7 +1313,7 @@ function getSimEntries(){
              type: 'GET',
              dataType: 'json',
              data: {'action':'get'},
-             url: Config.rootURL+'/sim.php',
+             url: sessionStorage.getItem('rootURL')+'/sim.php',
              success: function(result){
                     SimResults = result;
                     
@@ -1328,7 +1345,7 @@ var data = { 'lat':$('#lat').val(),
              type: 'GET',
              dataType: 'json',
              data: data,
-             url: Config.rootURL+'/sim.php',
+             url: sessionStorage.getItem('rootURL')+'/sim.php',
              success: function(result){
                      //saved so update the Config details
                  
@@ -1361,7 +1378,7 @@ var data = { 'endpoint':$('#endpoint').val(),
              type: 'GET',
              dataType: 'json',
              data: data,
-             url: Config.rootURL+'/config.php',
+             url: sessionStorage.getItem('rootURL')+'/config.php',
              success: function(result){
                      //saved so update the Config details
                  
@@ -1381,7 +1398,7 @@ function getConfig(){
              type: 'GET',
              dataType: 'json',
              data: {'action':'get'},
-             url: Config.rootURL+'/config.php',
+             url: sessionStorage.getItem('rootURL')+'/config.php',
              success: function(result){
                      Config = result;
     
@@ -1415,7 +1432,8 @@ $('#btnLogin').hide();
 $('#btnCheckIn').removeAttr('disabled').show(); 
 $('#btnSettings').show();
 $('#btnToggleCircle').show();    
-$('#btnLogin').show();    
+$('#btnLogin').show();   
+$("#showMayDay").show();    
     
 }
     
@@ -1491,7 +1509,7 @@ if(incidents.length <= 0){
                               "definition": {
                                 "type": "http://adlnet.gov/exapi/activties/simulation",
                                 "name": {
-                                    "en-US": "ESxAPI Simulation"
+                                    "en-US": " ESxAPI Simulation"
                                 }
                             }},
                        "context":{
@@ -1524,7 +1542,6 @@ if(incidents.length <= 0){
     
 //remove the current location and circle    
 //first marker is ALWAYS the checkin user
-  markersArray = []; 
   deleteOverlays();   
 
 //Clear circles    
@@ -1605,7 +1622,7 @@ function startRecording(byPass) {
                               "definition": {
                                 "type": "http://activitystrea.ms/schema/1.0/alert",
                                 "name": {
-                                  "en-US": "MAYDAY MAYDAY MAYDAY - from  " + reverseLookUp(geolocation.lat, geolocation.long) +"(" + geolocation.lat +","+ geolocation.long +")",
+                                  "en-US": " MAYDAY MAYDAY MAYDAY - from  " + reverseLookUp(geolocation.lat, geolocation.long) +"(" + geolocation.lat +","+ geolocation.long +")",
                                 }
                             }},
                        "context":{

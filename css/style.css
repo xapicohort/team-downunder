@@ -80,6 +80,8 @@ form .error {
     
 }
 
+
+
 @-webkit-keyframes longpress {
     0%, 20% { background: #bd2130; }
     100% { background: #28a745; }
@@ -89,3 +91,9 @@ form .error {
     0%, 20% { background: #bd2130; }
     100% { background: #28a745; }
 }
+
+
+/* tour */
+
+.tour{}
+.popover-title{}

@@ -69,75 +69,8 @@ var data = "";
 $(document).ready(function(){   
     
     
-    
-    var query = {'since': new Date(Date.now() - 1000*60*60*24*30).toISOString()};
-    
-    var ret = ADL.XAPIWrapper.getStatements();
-    var statements = new ADL.Collection(ret.statements);
-    
-    var actors = statements
-	// take all the statements for each actor
-	.groupBy('actor.name')
-	// get their best score
-	.max('result.score.raw')
-	// then sort the actors by those scores, high to low
-	.orderBy('max', 'descending')
-	// pick out only the first (highest) 10 scorers
-	.slice(0,10)
-	// and discard all the parts of the statements you won't be using
-	.select('group, max');
-    
-
-    dash.fetchAllStatements(query, fetchDoneCallback);
-    
-    var search = ADL.XAPIWrapper.searchParams();
-    search['related_activities'] = "true";
-    //xapiResults
-    search["since"] = query; /* Returns statements since Jan 1, 2020 */
-
-    data = ADL.XAPIWrapper.getStatements(search);
-    
-    if(data.more){
-        
-       // $('#moreStatements').html('<p><button>View More</button></p>');
-    
-    }
-    $.each(data.statements, function(index,statement){
-                           try{
-            var html = "";
-            thedate = new Date(statement.timestamp);
-              
-            //Get GeoData     
-            var place  = 'Not known';                 
-            var geo = statement.context.extensions['http://id.tincanapi.com/extension/geojson'];
-            if(geo){
-                
-                place = " at " + geo.properties.name;
-                
-            }                    
-            if(statement.verb.display['en-US'] === 'communicated'){
-              place = " " + statement.object.definition.name['en-US'];  
-            }                   
-            html = "<div class='row'><div class='col-10'>User " + statement.actor.name + " " + statement.verb.display['en-US']  + place +" at " + formatDate(thedate) +"<div class='col-2'><button class='btn btn-sm btn-success showxAPI' data-xapi='"+JSON.stringify(statement)+"'>View More</button></div></div></div>";
-       
-            $('#statements').append(html);  
-              
-          }
-      catch(err){
-        console.log("There's an error fetching the data: " + err.message);  
-      
-      }
-      });    
-    
-$('body').on('click','.showxAPI',function(){
-    
-  var jsonPretty = JSON.stringify(JSON.parse($(this).attr('data-xapi')),null,2);  
-	
-    $('#mdlxAPI .modal-body').empty().html('<pre><code>'+jsonPretty+'</code></pre>');             
-    $("#mdlxAPI").modal();             
-                  
-                  
-    })
+    //Set an update interval of every 5 seconds
+   getDashboard();
 })      
     
 
@@ -160,7 +93,73 @@ function fetchDoneCallback(){
 }
     
     
+ function getDashboard(){
+     
+ var query = {'since': new Date(Date.now() - 1000*60*60*24*30).toISOString()};
     
+    var ret = ADL.XAPIWrapper.getStatements();
+    var statements = new ADL.Collection(ret.statements);
+    
+    var actors = statements
+	// take all the statements for each actor
+	.groupBy('actor.name')
+	// get their best score
+	.max('result.score.raw')
+	// then sort the actors by those scores, high to low
+	.orderBy('max', 'descending')
+	// pick out only the first (highest) 10 scorers
+	.slice(0,10)
+	// and discard all the parts of the statements you won't be using
+	.select('group, max');
+    
+
+    dash.fetchAllStatements(query, fetchDoneCallback);
+    
+    data = ADL.XAPIWrapper.getStatements();
+    console.log(data);
+    $.each(data.statements, function(index,statement){
+    try{
+            var html = "";
+            thedate = new Date(statement.timestamp);
+              var simBG = ' style ="margin-bottom:10px" ';
+            if(statement.object.definition.type ==='http://adlnet.gov/exapi/activties/simulation'){
+                simBG = ' style ="background-color:salmon;color:white;margin-bottom:10px" ';
+            }                   
+                               
+            //Get GeoData     
+            var place  = 'Not known';                 
+            var geo = statement.context.extensions['http://id.tincanapi.com/extension/geojson'];
+            if(geo){
+                try{
+                place = " at " + geo.properties.name;
+                }
+                catch(er){
+                    place = "N/A";
+                }
+            }                    
+            if(statement.verb.display['en-US'] === 'communicated'){
+              place = " " + statement.object.definition.name['en-US'];  
+            } 
+            html = "<div class='row' "+simBG+"><div class='col-10'>User " + statement.actor.name + " " + statement.verb.display['en-US']  + statement.object.definition.name['en-US'] +" at " + formatDate(thedate) +"<div class='col-2' style='float:right'><button class='btn btn-sm btn-success showxAPI' data-xapi='"+JSON.stringify(statement)+"'>View xAPI</button></div></div></div>";
+            $('#statements').append(html);  
+              
+          }
+      catch(err){
+        console.log("There's an error fetching the data: " + err.message);  
+      
+      }
+      });    
+    
+$('body').on('click','.showxAPI',function(){
+    
+  var jsonPretty = JSON.stringify(JSON.parse($(this).attr('data-xapi')),null,2);  
+	
+    $('#mdlxAPI .modal-body').empty().html('<pre><code>'+jsonPretty+'</code></pre>');             
+    $("#mdlxAPI").modal();             
+                  
+                  
+    })    
+ }
     
 
     
