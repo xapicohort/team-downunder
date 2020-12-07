@@ -1,0 +1,1 @@
+sessionStorage.setItem('rootURL', Config.rootURL);

@@ -102,6 +102,7 @@ function showInitialTour(){
 // Instance the tour
 	
 var tour = new Tour({
+    keyboard: true,
    container: "body",
     steps: [
   {
@@ -133,6 +134,7 @@ function showLoggedInTour(){
 // Instance the tour
 	
 var tourLogged = new Tour({
+     keyboard: true,
     container: "body",
     steps: [
   {
